@@ -11,7 +11,7 @@ import { questions, resolveRole } from "@/lib/assessment";
 import { supabase } from "@/integrations/supabase/client";
 
 const ARC_X = "https://x.com/arc_netizen";
-const ARC_PINNED_POST_URL = "https://x.com/arc_netizen";
+const ARC_PINNED_POST_URL = "https://x.com/arc_netizen/status/2098822267186618746";
 
 const roleQuotes: Record<string, string> = {
   Merchant:
@@ -145,15 +145,20 @@ export function JoinNetizen({
 
   async function download(node: HTMLDivElement | null, label: string) {
     if (!node) return;
-    const dataUrl = await toPng(node, {
-      pixelRatio: 2,
-      cacheBust: true,
-      backgroundColor: "#ffffff",
-    });
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = `arc-netizen-${label}.png`;
-    link.click();
+    try {
+      const dataUrl = await toPng(node, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: "#ffffff",
+        skipFonts: true,
+      });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `arc-netizen-${label}.png`;
+      link.click();
+    } catch (err) {
+      console.error("Failed to generate card image:", err);
+    }
   }
 
   async function copyCaption() {

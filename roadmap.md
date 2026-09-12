@@ -12,7 +12,7 @@
 - [x] Rename everything from ARC Citizen to ARC Netizen
 - [x] Reduce roles to eight (Operator and Treasurer removed)
 - [x] X tasks via external links + user confirmation (no X API, by design)
-- [ ] Real pinned ARC post link (blocked: awaiting URL)
+- [x] Real pinned ARC post link
 - [x] Visionary card artwork
 - [x] Replace the A/C mark and homepage portrait with supplied artwork
 - [x] Split like and repost into separate gated tasks
