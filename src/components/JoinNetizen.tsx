@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NetizenCard } from "@/components/NetizenCard";
 import { roles, type Role } from "@/lib/arc-data";
-import { questions, resolveRole } from "@/lib/assessment";
 import { supabase } from "@/integrations/supabase/client";
 
 const ARC_X = "https://x.com/arc_netizen";
@@ -86,8 +85,8 @@ export function JoinNetizen({
   const [reposted, setReposted] = useState(false);
   const [commented, setCommented] = useState(false);
   const [commentUrl, setCommentUrl] = useState("");
-  const [picks, setPicks] = useState<string[]>([]);
   const [role, setRole] = useState<Role | null>(null);
+  const [cardNumber, setCardNumber] = useState("");
   const [quoteUrl, setQuoteUrl] = useState("");
   const [quoteDone, setQuoteDone] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -98,11 +97,6 @@ export function JoinNetizen({
 
   const cardRef = useRef<HTMLDivElement>(null);
   const finalCardRef = useRef<HTMLDivElement>(null);
-
-  const cardNumber = useMemo(
-    () => (role ? String(Math.floor(1000 + Math.random() * 8999)) : ""),
-    [role],
-  );
 
   const tasksDone = followed && liked && reposted && commented;
   const walletValid = /^0x[a-fA-F0-9]{40}$/.test(wallet.trim());
@@ -123,8 +117,8 @@ export function JoinNetizen({
       setReposted(false);
       setCommented(false);
       setCommentUrl("");
-      setPicks([]);
       setRole(null);
+      setCardNumber("");
       setQuoteUrl("");
       setQuoteDone(false);
       setCopied(false);
@@ -134,15 +128,13 @@ export function JoinNetizen({
     }
   }
 
-  function answer(roleName: string) {
-    const next = [...picks, roleName];
-    setPicks(next);
-    if (next.length === questions.length) {
-      const resolved = resolveRole(next);
-      setRole(resolved);
-      const index = roles.findIndex((r) => r.name === resolved.name);
-      if (index >= 0) onSelect(index);
+  function selectRole(r: Role) {
+    setRole(r);
+    if (!cardNumber) {
+      setCardNumber(String(Math.floor(1000 + Math.random() * 8999)));
     }
+    const index = roles.findIndex((item) => item.id === r.id);
+    if (index >= 0) onSelect(index);
   }
 
   async function download(node: HTMLDivElement | null, label: string) {
@@ -226,7 +218,6 @@ export function JoinNetizen({
   }
 
   const activeRole = role ?? roles[selected] ?? roles[0]!;
-  const question = questions[picks.length];
 
   return (
     <Dialog open={open} onOpenChange={reset}>
@@ -413,33 +404,51 @@ export function JoinNetizen({
               )}
             </Step>
 
-            <Step index="05" title="Discover your netizen role">
+            <Step index="05" title="Choose your netizen role">
               {!tasksDone && (
                 <p className="text-xs text-muted-foreground">Complete tasks 01–04 to unlock.</p>
               )}
-              {tasksDone && !role && question && (
-                <div>
-                  <p className="technical-label text-muted-foreground">
-                    Question {picks.length + 1} / {questions.length}
+              {tasksDone && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Select your role from the 8 official ARC Netizen archetypes:
                   </p>
-                  <p className="mt-2 text-sm font-semibold uppercase leading-5">
-                    {question.prompt}
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    {question.answers.map((a) => (
-                      <button
-                        key={a.label}
-                        type="button"
-                        onClick={() => answer(a.role)}
-                        className="w-full border border-border px-3 py-3 text-left text-sm transition-colors hover:border-foreground hover:bg-cobalt-soft"
-                      >
-                        {a.label}
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {roles.map((r) => {
+                      const isSelected = role?.id === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => selectRole(r)}
+                          className={`flex flex-col border p-3 text-left transition-colors ${
+                            isSelected
+                              ? "border-cobalt bg-cobalt-soft text-foreground ring-1 ring-cobalt"
+                              : "border-border bg-background hover:border-foreground/50 hover:bg-paper"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="technical-label text-[11px] font-semibold uppercase">
+                              {r.name}
+                            </span>
+                            <span
+                              className="size-2 rounded-full"
+                              style={{ backgroundColor: r.color }}
+                            />
+                          </div>
+                          <p className="mt-1 line-clamp-1 text-xs font-medium text-muted-foreground">
+                            {r.ability}
+                          </p>
+                          <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground/80">
+                            {r.desc}
+                          </p>
+                        </button>
+                      );
+                    })}
                   </div>
+                  {role && <Done label={`Role chosen — The ${role.name}`} />}
                 </div>
               )}
-              {role && <Done label={`Role discovered — the ${role.name}`} />}
             </Step>
 
             {role && (
