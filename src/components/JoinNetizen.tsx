@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { ArrowUpRight, Check, Copy, Download } from "lucide-react";
-import { toPng } from "html-to-image";
+import { toBlob, toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -85,6 +85,7 @@ export function JoinNetizen({
   const [liked, setLiked] = useState(false);
   const [reposted, setReposted] = useState(false);
   const [commented, setCommented] = useState(false);
+  const [commentUrl, setCommentUrl] = useState("");
   const [picks, setPicks] = useState<string[]>([]);
   const [role, setRole] = useState<Role | null>(null);
   const [quoteUrl, setQuoteUrl] = useState("");
@@ -121,6 +122,7 @@ export function JoinNetizen({
       setLiked(false);
       setReposted(false);
       setCommented(false);
+      setCommentUrl("");
       setPicks([]);
       setRole(null);
       setQuoteUrl("");
@@ -146,6 +148,29 @@ export function JoinNetizen({
   async function download(node: HTMLDivElement | null, label: string) {
     if (!node) return;
     try {
+      const filename = `arc-netizen-${label}.png`;
+      const blob = await toBlob(node, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: "#ffffff",
+        skipFonts: true,
+      });
+
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.style.display = "none";
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          if (link.parentNode) link.parentNode.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 1000);
+        return;
+      }
+
       const dataUrl = await toPng(node, {
         pixelRatio: 2,
         cacheBust: true,
@@ -153,9 +178,14 @@ export function JoinNetizen({
         skipFonts: true,
       });
       const link = document.createElement("a");
+      link.style.display = "none";
       link.href = dataUrl;
-      link.download = `arc-netizen-${label}.png`;
+      link.download = filename;
+      document.body.appendChild(link);
       link.click();
+      setTimeout(() => {
+        if (link.parentNode) link.parentNode.removeChild(link);
+      }, 1000);
     } catch (err) {
       console.error("Failed to generate card image:", err);
     }
@@ -280,7 +310,7 @@ export function JoinNetizen({
               )}
             </Step>
 
-            <Step index="02" title="Like the pinned ARC post">
+            <Step index="02" title="Like the pinned ARC Netizen post">
               <Button
                 variant="registryOutline"
                 className="w-full"
@@ -289,7 +319,7 @@ export function JoinNetizen({
                   openX(ARC_PINNED_POST_URL);
                 }}
               >
-                Open ARC post <ArrowUpRight />
+                Open ARC Netizen post <ArrowUpRight />
               </Button>
               {liked ? (
                 <Done label="Task 02 complete" />
@@ -304,11 +334,11 @@ export function JoinNetizen({
                 </Button>
               )}
               {!openedLike && (
-                <p className="text-xs text-muted-foreground">Open the ARC post first.</p>
+                <p className="text-xs text-muted-foreground">Open the ARC Netizen post first.</p>
               )}
             </Step>
 
-            <Step index="03" title="Repost the pinned ARC post">
+            <Step index="03" title="Repost the pinned ARC Netizen post">
               <Button
                 variant="registryOutline"
                 className="w-full"
@@ -317,7 +347,7 @@ export function JoinNetizen({
                   openX(ARC_PINNED_POST_URL);
                 }}
               >
-                Open ARC post <ArrowUpRight />
+                Open ARC Netizen post <ArrowUpRight />
               </Button>
               {reposted ? (
                 <Done label="Task 03 complete" />
@@ -332,11 +362,11 @@ export function JoinNetizen({
                 </Button>
               )}
               {!openedRepost && (
-                <p className="text-xs text-muted-foreground">Open the ARC post first.</p>
+                <p className="text-xs text-muted-foreground">Open the ARC Netizen post first.</p>
               )}
             </Step>
 
-            <Step index="04" title="Comment on the pinned ARC post">
+            <Step index="04" title="Comment on the pinned ARC Netizen post">
               <Button
                 variant="registryOutline"
                 className="w-full"
@@ -347,20 +377,37 @@ export function JoinNetizen({
               >
                 Comment on X <ArrowUpRight />
               </Button>
+              <Label htmlFor="comment-url" className="technical-label text-muted-foreground">
+                Paste your comment post URL
+              </Label>
+              <Input
+                id="comment-url"
+                value={commentUrl}
+                onChange={(e) => setCommentUrl(e.target.value)}
+                placeholder="https://x.com/username/status/..."
+                className="rounded-none border-border bg-background"
+              />
               {commented ? (
-                <Done label="Task 04 complete" />
+                <Done label="Task 04 complete — comment submitted" />
               ) : (
                 <>
                   <Button
                     variant="registry"
                     className="w-full"
-                    disabled={!openedComment}
+                    disabled={!openedComment || !commentUrl.trim()}
                     onClick={() => setCommented(true)}
                   >
                     I posted my comment
                   </Button>
                   {!openedComment && (
-                    <p className="text-xs text-muted-foreground">Open the ARC post first.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Open the ARC Netizen post first.
+                    </p>
+                  )}
+                  {openedComment && !commentUrl.trim() && (
+                    <p className="text-xs text-muted-foreground">
+                      Paste your comment URL above to continue.
+                    </p>
                   )}
                 </>
               )}
